@@ -39,7 +39,7 @@ class ProductFactory(factory.Factory):
     id = factory.Sequence(lambda n: n)
     name = factory.fuzzy.FuzzyChoice(choices=PRODUCTS)
     description = factory.Faker("sentence", nb_words=5)
-    price = factory.fuzzy.FuzzyDecimal(5.00, 50.00)
+    price = factory.fuzzy.FuzzyDecimal(5, 50, 0)
     available = factory.fuzzy.FuzzyChoice(choices=[True, False])
     category = factory.fuzzy.FuzzyChoice(choices=CATEGORIES)
 

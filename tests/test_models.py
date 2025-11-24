@@ -27,7 +27,7 @@ import os
 import logging
 import unittest
 from decimal import Decimal
-from service.models import Product, Category, db
+from service.models import Product, Category, db, DataValidationError
 from service import app
 from tests.factories import ProductFactory
 
@@ -208,12 +208,12 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(products, product_list)
 
     def test_get_product_by_name(self):
-        """ It should return a product with a specific name """
+        """ It should return products with a specific name """
         # Check db is empty
         products = Product.all()
         self.assertEqual(products, [])
 
-        # Create 5 new products
+        # Create 15 new products
         for i in range(15):
             product = ProductFactory()
             logging.debug("Creating %s", product)
@@ -230,7 +230,167 @@ class TestProductModel(unittest.TestCase):
         product_db = products[0]
         name = product_db.name
         found = Product.find_by_name(name)
-        found_count = len(found)
+        found_count = len(list(found))
         for i in found:
-            self.assertIn(name, i.name)
+            self.assertEqual(name, i.name)
 
+    def test_get_product_by_availability(self):
+        """ It should return available products """
+        # Check db is empty
+        products = Product.all()
+        self.assertEqual(products, [])
+
+        # Create 15 new products
+        for i in range(15):
+            product = ProductFactory()
+            product.create()
+            logging.info("Created %s", product)
+        
+        # Check db has 15 items
+        products = Product.all()
+        self.assertEqual(len(products), 15)
+
+        # Retrieve the product by availability
+        product_db = products[0]
+        available = product_db.available
+        found = Product.find_by_availability(available)
+        products_count = len([p for p in products if p.available == available])
+        found_count = len(list(found))
+
+        self.assertEqual(found_count, products_count)
+        self.assertEqual(found[0].available, available)
+
+    def test_get_product_by_category(self):
+        """ It should return products in given category """
+        # Check db is empty
+        products = Product.all()
+        self.assertEqual(products, [])
+
+        # Create 15 new products
+        for i in range(15):
+            product = ProductFactory()
+            product.create()
+            logging.info("Created %s", product)
+        
+        # Check db has 15 items
+        products = Product.all()
+        self.assertEqual(len(products), 15)
+
+        # Retrieve the product by category
+        product_db = products[0]
+        cat = product_db.category
+        found = Product.find_by_category(cat)
+        products_count = len([p for p in products if p.category == cat])
+        found_count = len(list(found))
+
+        self.assertEqual(found_count, products_count)
+        self.assertEqual(found[0].category, cat)
+
+    def test_get_product_by_price(self):
+        """ It should return products with a given price """
+        # Check db is empty
+        products = Product.all()
+        self.assertEqual(products, [])
+
+        # Create 15 new products
+        for i in range(15):
+            product = ProductFactory()
+            product.create()
+            logging.info("Created %s", product)
+            logging.info("Price is %s", product.price)
+        
+        # Check db has 15 items
+        products = Product.all()
+        self.assertEqual(len(products), 15)
+
+        # Retrieve the product with same price
+        product_db = products[0]
+        price = product_db.price
+        found = Product.find_by_price(price)
+        products_count = len([p for p in products if p.price == price])
+        found_count = len(list(found))
+        logging.info("Found %s", found)
+
+        self.assertEqual(found_count, products_count)
+        self.assertEqual(found[0].price, price)
+
+    def test_convert_str_price_to_float(self):
+        """ It should convert a price format from string to a float """
+        # Check db is empty
+        products = Product.all()
+        self.assertEqual(products, [])
+        
+        # Create a new product
+        product = ProductFactory()
+        product.create()
+        logging.info("Created %s", product)
+
+        # Update the created product
+        products = Product.find_by_price(str(product.price))
+        product_db = products[0]
+        self.assertIsInstance(product_db.price, Decimal)
+
+    def test_wrong_available_value_type(self):
+        """ It should return DataValidationError for non-boolean types in available """
+        # Create a product dictionary
+        product = ProductFactory()
+        product_dict = {
+            "name": product.name,
+            "description": product.description,
+            "price": product.price,
+            "available": "True",
+            "category": "UNKNOWN"
+        }
+        self.assertRaises(DataValidationError, Product.deserialize, product, product_dict)
+
+    def test_attribute_error(self):
+        """ It should return AttributeError for accessing non-existent attribute """
+        product = ProductFactory()
+        product_dict = {
+            "name": product.name,
+            "description": product.description,
+            "price": product.price,
+            "available": False,
+            "category": "UNKNOWN"
+        }
+        product.create()
+        # Create a product dictionary with wrong data
+        wrong_data = {"wrong": 23}
+
+        with self.assertRaises(AttributeError):
+            product.deserialize({"n":product.review})
+    
+    
+    def test_key_error(self):
+        """ It should return DataValidationError for passing data with missing attribute """
+        # Create a product dictionary
+        product = ProductFactory()
+        product_dict = {
+            "name": product.name,
+            "new_name": "some_name"
+        }
+        logging.debug("Processing %s", product)
+        self.assertRaises(DataValidationError, Product.deserialize, product, product_dict)
+
+    def test_type_error(self):
+        """ It should return DataValidationError for accessing non-existent attribute """
+        product = Product()
+        product_dict = None
+
+        with self.assertRaises(DataValidationError):
+            product.deserialize(product_dict)
+
+    def test_update_with_wrong_id(self):
+        """ It should return DataValidationError for updating a product with incorrect id """
+        # Create a new product
+        product = ProductFactory()
+        product.create()
+        logging.info("Created %s", product)
+
+        # Update the created product
+        products = Product.all()
+        product_db = products[0]
+        product_db.id = None
+        self.assertRaises(DataValidationError, product_db.update)
+
+        
