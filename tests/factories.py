@@ -21,15 +21,13 @@ import factory
 from factory.fuzzy import FuzzyChoice, FuzzyDecimal
 from service.models import Product, Category
 
-CATEGORIES = [i for i in Category]
-PRODUCTS = ["socks", "car", "headphones", "screwdriver", "headlight", "blender", "kettle", "blouse", "shirt", 
-           "apple", "banana", "pear"]
+CATEGORIES = list(Category)
+PRODUCTS = ["socks", "car", "headphones", "screwdriver", "headlight", "blender", "kettle", "blouse", "shirt",
+            "apple", "banana", "pear"]
+
 
 class ProductFactory(factory.Factory):
     """Creates fake products for testing"""
-
-    global CATEGORIES
-    global PRODUCTS
 
     class Meta:
         """Maps factory to data model"""
@@ -37,9 +35,8 @@ class ProductFactory(factory.Factory):
         model = Product
 
     id = factory.Sequence(lambda n: n)
-    name = factory.fuzzy.FuzzyChoice(choices=PRODUCTS)
+    name = FuzzyChoice(choices=PRODUCTS)
     description = factory.Faker("sentence", nb_words=5)
-    price = factory.fuzzy.FuzzyDecimal(5, 50, 0)
-    available = factory.fuzzy.FuzzyChoice(choices=[True, False])
-    category = factory.fuzzy.FuzzyChoice(choices=CATEGORIES)
-
+    price = FuzzyDecimal(5, 50, 0)
+    available = FuzzyChoice(choices=[True, False])
+    category = FuzzyChoice(choices=CATEGORIES)

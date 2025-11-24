@@ -124,13 +124,13 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(product_db.price, product.price)
         self.assertEqual(product_db.available, product.available)
         self.assertEqual(product_db.category, product.category)
-        
+
     def test_update_a_product(self):
         """ It should Update an existing product from the db """
         # Check db is empty
         products = Product.all()
         self.assertEqual(products, [])
-        
+
         # Create a new product
         product = ProductFactory()
         logging.debug("Creating %s", product)
@@ -160,7 +160,7 @@ class TestProductModel(unittest.TestCase):
         # Check db is empty
         products = Product.all()
         self.assertEqual(products, [])
-        
+
         # Create a new product
         product = ProductFactory()
         logging.debug("Creating %s", product)
@@ -187,11 +187,11 @@ class TestProductModel(unittest.TestCase):
         # Check db is empty
         products = Product.all()
         self.assertEqual(products, [])
-        
+
         product_list = []
 
         # Create 5 new products
-        for i in range(5):
+        for _ in range(5):
             product = ProductFactory()
             logging.debug("Creating %s", product)
             product.id = None
@@ -199,7 +199,7 @@ class TestProductModel(unittest.TestCase):
             self.assertNotEqual(product.id, None)
             logging.info("Created %s", product)
             product_list.append(product)
-        
+
         # Check db has 5 items
         products = Product.all()
         self.assertEqual(len(products), 5)
@@ -214,14 +214,14 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(products, [])
 
         # Create 15 new products
-        for i in range(15):
+        for _ in range(15):
             product = ProductFactory()
             logging.debug("Creating %s", product)
             product.id = None
             product.create()
             self.assertNotEqual(product.id, None)
             logging.info("Created %s", product)
-        
+
         # Check db has 15 items
         products = Product.all()
         self.assertEqual(len(products), 15)
@@ -230,9 +230,11 @@ class TestProductModel(unittest.TestCase):
         product_db = products[0]
         name = product_db.name
         found = Product.find_by_name(name)
+        products_count = len([p for p in products if p.name == name])
         found_count = len(list(found))
-        for i in found:
-            self.assertEqual(name, i.name)
+
+        self.assertEqual(found_count, products_count)
+        self.assertEqual(found[0].name, name)
 
     def test_get_product_by_availability(self):
         """ It should return available products """
@@ -241,11 +243,11 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(products, [])
 
         # Create 15 new products
-        for i in range(15):
+        for _ in range(15):
             product = ProductFactory()
             product.create()
             logging.info("Created %s", product)
-        
+
         # Check db has 15 items
         products = Product.all()
         self.assertEqual(len(products), 15)
@@ -267,11 +269,11 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(products, [])
 
         # Create 15 new products
-        for i in range(15):
+        for _ in range(15):
             product = ProductFactory()
             product.create()
             logging.info("Created %s", product)
-        
+
         # Check db has 15 items
         products = Product.all()
         self.assertEqual(len(products), 15)
@@ -293,12 +295,12 @@ class TestProductModel(unittest.TestCase):
         self.assertEqual(products, [])
 
         # Create 15 new products
-        for i in range(15):
+        for _ in range(15):
             product = ProductFactory()
             product.create()
             logging.info("Created %s", product)
             logging.info("Price is %s", product.price)
-        
+
         # Check db has 15 items
         products = Product.all()
         self.assertEqual(len(products), 15)
@@ -319,7 +321,7 @@ class TestProductModel(unittest.TestCase):
         # Check db is empty
         products = Product.all()
         self.assertEqual(products, [])
-        
+
         # Create a new product
         product = ProductFactory()
         product.create()
@@ -345,22 +347,11 @@ class TestProductModel(unittest.TestCase):
 
     def test_attribute_error(self):
         """ It should return AttributeError for accessing non-existent attribute """
-        product = ProductFactory()
-        product_dict = {
-            "name": product.name,
-            "description": product.description,
-            "price": product.price,
-            "available": False,
-            "category": "UNKNOWN"
-        }
-        product.create()
-        # Create a product dictionary with wrong data
-        wrong_data = {"wrong": 23}
+        product = Product()
 
         with self.assertRaises(AttributeError):
-            product.deserialize({"n":product.review})
-    
-    
+            product.deserialize({"name": product.new_name})
+
     def test_key_error(self):
         """ It should return DataValidationError for passing data with missing attribute """
         # Create a product dictionary
@@ -392,5 +383,3 @@ class TestProductModel(unittest.TestCase):
         product_db = products[0]
         product_db.id = None
         self.assertRaises(DataValidationError, product_db.update)
-
-        
