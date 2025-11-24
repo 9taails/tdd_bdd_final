@@ -104,3 +104,133 @@ class TestProductModel(unittest.TestCase):
     #
     # ADD YOUR TEST CASES HERE
     #
+
+    def test_get_a_product(self):
+        """ It should Read a product from the db """
+        # Check db is empty
+        products = Product.all()
+        self.assertEqual(products, [])
+        product = ProductFactory()
+        app.logger.info("Creating %s", product)
+        product.id = None
+        product.create()
+        self.assertNotEqual(product.id, None)
+        # Check db has 1 item
+        products = Product.all()
+        self.assertEqual(len(products), 1)
+        product_db = Product.find(product.id)
+        self.assertEqual(product_db.name, product.name)
+        self.assertEqual(product_db.description, product.description)
+        self.assertEqual(product_db.price, product.price)
+        self.assertEqual(product_db.available, product.available)
+        self.assertEqual(product_db.category, product.category)
+        
+    def test_update_a_product(self):
+        """ It should Update an existing product from the db """
+        # Check db is empty
+        products = Product.all()
+        self.assertEqual(products, [])
+        
+        # Create a new product
+        product = ProductFactory()
+        logging.debug("Creating %s", product)
+        product.id = None
+        product.create()
+        self.assertNotEqual(product.id, None)
+        logging.info("Created %s", product)
+
+        # Update the created product
+        products = Product.all()
+        product_db = products[0]
+        product_db.description = "This is an updated description."
+        product_db.update()
+        logging.info("Updated %s", product)
+
+        # Check db still has 1 item
+        self.assertEqual(len(products), 1)
+
+        # Check the updated product
+        products = Product.all()
+        product_db = products[0]
+        self.assertEqual(product_db.id, product.id)
+        self.assertEqual(product_db.description, "This is an updated description.")
+
+    def test_delete_a_product(self):
+        """ It should Delete an existing product from the db """
+        # Check db is empty
+        products = Product.all()
+        self.assertEqual(products, [])
+        
+        # Create a new product
+        product = ProductFactory()
+        logging.debug("Creating %s", product)
+        product.id = None
+        product.create()
+        self.assertNotEqual(product.id, None)
+        logging.info("Created %s", product)
+
+        # Check db has 1 item
+        products = Product.all()
+        self.assertEqual(len(products), 1)
+
+        # Delete the product
+        product_db = products[0]
+        product_db.delete()
+        logging.info("Deleted %s", product)
+
+        # Check db is empty
+        products = Product.all()
+        self.assertEqual(products, [])
+
+    def test_list_all_products(self):
+        """ It should return all existing products in the db """
+        # Check db is empty
+        products = Product.all()
+        self.assertEqual(products, [])
+        
+        product_list = []
+
+        # Create 5 new products
+        for i in range(5):
+            product = ProductFactory()
+            logging.debug("Creating %s", product)
+            product.id = None
+            product.create()
+            self.assertNotEqual(product.id, None)
+            logging.info("Created %s", product)
+            product_list.append(product)
+        
+        # Check db has 5 items
+        products = Product.all()
+        self.assertEqual(len(products), 5)
+
+        # Check the items match
+        self.assertEqual(products, product_list)
+
+    def test_get_product_by_name(self):
+        """ It should return a product with a specific name """
+        # Check db is empty
+        products = Product.all()
+        self.assertEqual(products, [])
+
+        # Create 5 new products
+        for i in range(15):
+            product = ProductFactory()
+            logging.debug("Creating %s", product)
+            product.id = None
+            product.create()
+            self.assertNotEqual(product.id, None)
+            logging.info("Created %s", product)
+        
+        # Check db has 15 items
+        products = Product.all()
+        self.assertEqual(len(products), 15)
+
+        # Retrieve the product by name
+        product_db = products[0]
+        name = product_db.name
+        found = Product.find_by_name(name)
+        found_count = len(found)
+        for i in found:
+            self.assertIn(name, i.name)
+
