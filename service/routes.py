@@ -152,7 +152,17 @@ def update_a_product(product_id):
 # D E L E T E   A   P R O D U C T
 ######################################################################
 
+@app.route("/products/<int:product_id>", methods=['DELETE'])
+def delete_a_product(product_id):
+    """ Delete an existing product in the database by product id. """
+    
+    app.logger.info("Request to Delete a product with id [%s]", product_id)
+    
+    product = Product.find(product_id)
 
-#
-# PLACE YOUR CODE TO DELETE A PRODUCT HERE
-#
+    if product:
+        product.delete()
+        app.logger.info("Deleted ", product.name)
+        return {"message": "Product deleted."}, status.HTTP_200_OK
+    
+    return {"message":"Product with given ID not found."}, status.HTTP_404_NOT_FOUND

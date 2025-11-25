@@ -208,10 +208,7 @@ class TestProductRoutes(TestCase):
         """ It should delete a product with given id from the database """
         # Create some products
         products = self._create_products(5)
-        response = self.client.get(BASE_URL)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        product_list = response.get_json()
-        self.assertEqual(len(product_list), len(products))
+        count = self.get_product_count()
 
         # Delete a product by product_id
         product = products[0]
@@ -220,7 +217,7 @@ class TestProductRoutes(TestCase):
         
         # Check the db is empty
         all_products = self.client.get(f"{BASE_URL}")
-        self.assertEqual(len(all_products), 0)
+        self.assertEqual(len(all_products.get_json()), count - 1)
 
 
     ######################################################################
