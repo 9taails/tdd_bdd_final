@@ -20,7 +20,7 @@ Product Store Service with UI
 """
 from flask import jsonify, request, abort
 from flask import url_for  # noqa: F401 pylint: disable=unused-import
-from service.models import Product
+from service.models import Product, Category
 from service.common import status  # HTTP Status Codes
 from . import app
 import logging
@@ -100,11 +100,35 @@ def create_products():
 ######################################################################
 @app.route("/products", methods=["GET"])
 def list_products():
-    """ Returns a list of all products from the db """
+    """ Returns a list of all products from the db or sorted by given attribute"""
 
     app.logger.info("Getting all products...")
 
-    products = Product.all()
+    # Filtering names
+    product_name = request.args.get("name")
+    category = request.args.get("category.name")
+    product_available = request.args.get("available")
+    product_price = request.args.get("price")
+
+    if product_name:
+        app.logger.info("Filtering items by name:", product_name)
+        products = Product.find_by_name(product_name)
+    
+    elif category:
+        app.logger.info("Filtering items by category:", category)
+        products = Product.find_by_category(category=category)
+    
+    elif product_available:
+        app.logger.info("Filtering items by status:", product_available)
+        products = Product.find_by_availability(product_available)
+
+    elif product_price:
+        app.logger.info("Filtering items by price:", product_price)
+        products = Product.find_by_price(product_price)
+
+    else:
+        app.logger.info("Returning a list of all items.")
+        products = Product.all()
 
     product_list = [p.serialize() for p in products]
     app.logger.info("There is ", len(product_list))
@@ -138,6 +162,9 @@ def update_a_product(product_id):
     app.logger.info("Request to Update a product with id [%s]", product_id)
     check_content_type("application/json")
 
+    if type(product_id) != int or product_id == 0:
+        return {"message":"Wrong ID"}, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+
     product = Product.find(product_id)
 
     if product:
@@ -165,4 +192,4 @@ def delete_a_product(product_id):
         app.logger.info("Deleted ", product.name)
         return {"message": "Product deleted."}, status.HTTP_200_OK
     
-    return {"message":"Product with given ID not found."}, status.HTTP_404_NOT_FOUND
+    #return {"message":"Product with given ID not found."}, status.HTTP_404_NOT_FOUND

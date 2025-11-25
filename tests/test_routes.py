@@ -28,6 +28,7 @@ import os
 import logging
 from decimal import Decimal
 from unittest import TestCase
+from urllib.parse import quote_plus
 from service import app
 from service.common import status
 from service.models import db, init_db, Product
@@ -158,6 +159,10 @@ class TestProductRoutes(TestCase):
         """It should not Create a Product with wrong Content-Type"""
         response = self.client.post(BASE_URL, data={}, content_type="plain/text")
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+    
+    #
+    #   TESTING GET FUNCTIONS
+    #
 
     def test_get_a_product(self):
         """ It should read a product from the database """
@@ -183,6 +188,50 @@ class TestProductRoutes(TestCase):
         response = self.client.get(f"{BASE_URL}/0")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    #
+    #   TESTING LISTING FUNCTIONS
+    #
+
+    def test_list_products(self):
+        """ It should return a list of all products in the database """
+        products = self._create_products(5)
+        resp = self.client.get(BASE_URL)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+        self.assertEqual(len(data), 5)
+
+    def test_list_by_name(self):
+        """ It should return a list of all products with the given name """
+        products = self._create_products(10)
+        product_name = products[0].name
+        name_count = len([p for p in products if p.name == product_name])
+        response = self.client.get(
+            BASE_URL, query_string=f"name={product_name}"
+        )        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), name_count)
+        for i in data:
+            self.assertEqual(i["name"], product_name)
+    
+    def test_list_by_category(self):
+        """ It should return a list of all products with the given name """
+        products = self._create_products(10)
+        product_category = products[0].category.name
+        count = len([p for p in products if p.category.name == product_category])
+        response = self.client.get(
+            BASE_URL, query_string=f"category={product_category}"
+        )        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), count)
+        for i in data:
+            self.assertEqual(i["category"], product_category)
+
+    #
+    # TESTING UPDATE FUNCTIONS
+    #
+
     def test_update_a_product(self):
         """ It should update a product in the database """
         # Create some products
@@ -203,6 +252,22 @@ class TestProductRoutes(TestCase):
         response = self.client.get(f"{BASE_URL}/{product.id}")
         product_db = response.get_json()
         self.assertEqual(product_db["name"], "Ubot")
+
+    def test_update_a_product_with_wrong_id_type(self):
+        """ It should return a 404 status code """
+        # Get a product with wrong id
+        response = self.client.put(f"{BASE_URL}/'0'")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_update_a_product_with_wrong_id(self):
+        """ It should return a 415 status code """
+        # Get a product with wrong id
+        response = self.client.put(f"{BASE_URL}/1")
+        self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+
+    #
+    #   TESTING DELETE FUNCTIONS
+    #
 
     def test_delete_a_product(self):
         """ It should delete a product with given id from the database """
