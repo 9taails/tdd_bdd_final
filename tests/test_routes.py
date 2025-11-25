@@ -130,19 +130,15 @@ class TestProductRoutes(TestCase):
         self.assertEqual(new_product["available"], test_product.available)
         self.assertEqual(new_product["category"], test_product.category.name)
 
-        #
-        # Uncomment this code once READ is implemented
-        #
-
-        # # Check that the location header was correct
-        # response = self.client.get(location)
-        # self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # new_product = response.get_json()
-        # self.assertEqual(new_product["name"], test_product.name)
-        # self.assertEqual(new_product["description"], test_product.description)
-        # self.assertEqual(Decimal(new_product["price"]), test_product.price)
-        # self.assertEqual(new_product["available"], test_product.available)
-        # self.assertEqual(new_product["category"], test_product.category.name)
+        # Check that the location header was correct
+        response = self.client.get(location)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        new_product = response.get_json()
+        self.assertEqual(new_product["name"], test_product.name)
+        self.assertEqual(new_product["description"], test_product.description)
+        self.assertEqual(Decimal(new_product["price"]), test_product.price)
+        self.assertEqual(new_product["available"], test_product.available)
+        self.assertEqual(new_product["category"], test_product.category.name)
 
     def test_create_product_with_no_name(self):
         """It should not Create a Product without a name"""
@@ -163,9 +159,69 @@ class TestProductRoutes(TestCase):
         response = self.client.post(BASE_URL, data={}, content_type="plain/text")
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
-    #
-    # ADD YOUR TEST CASES HERE
-    #
+    def test_get_a_product(self):
+        """ It should read a product from the database """
+        # Create some products
+        products = self._create_products(1)
+        product = products[0]
+
+        # Get a product by product_id
+        response = self.client.get(f"{BASE_URL}/{product.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check the product info
+        product_db = response.get_json()
+        self.assertEqual(product_db["name"], product.name)
+
+    def test_get_product_with_wrong_id(self):
+        """ It should return a 404 status code when trying to get a product with invalid id """
+        # Create some products
+        products = self._create_products(1)
+        product = products[0]
+
+        # Get a product by product_id
+        response = self.client.get(f"{BASE_URL}/0")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_a_product(self):
+        """ It should update a product in the database """
+        # Create some products
+        products = self._create_products(1)
+        product = products[0]
+
+        # Get a product by product_id
+        response = self.client.get(f"{BASE_URL}/{product.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+
+        # Update the product's name
+        data['name'] = "Ubot"
+        response = self.client.put(f"{BASE_URL}/{product.id}", json=data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check for the new name
+        response = self.client.get(f"{BASE_URL}/{product.id}")
+        product_db = response.get_json()
+        self.assertEqual(product_db["name"], "Ubot")
+
+    def test_delete_a_product(self):
+        """ It should delete a product with given id from the database """
+        # Create some products
+        products = self._create_products(5)
+        response = self.client.get(BASE_URL)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        product_list = response.get_json()
+        self.assertEqual(len(product_list), len(products))
+
+        # Delete a product by product_id
+        product = products[0]
+        response = self.client.delete(f"{BASE_URL}/{product.id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Check the db is empty
+        all_products = self.client.get(f"{BASE_URL}")
+        self.assertEqual(len(all_products), 0)
+
 
     ######################################################################
     # Utility functions
