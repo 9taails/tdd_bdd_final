@@ -79,6 +79,7 @@ class TestProductRoutes(TestCase):
     ############################################################
     # Utility function to bulk create products
     ############################################################
+
     def _create_products(self, count: int = 1) -> list:
         """Factory method to create products in bulk"""
         products = []
@@ -96,6 +97,7 @@ class TestProductRoutes(TestCase):
     ############################################################
     #  T E S T   C A S E S
     ############################################################
+
     def test_index(self):
         """It should return the index page"""
         response = self.client.get("/")
@@ -109,9 +111,10 @@ class TestProductRoutes(TestCase):
         data = response.get_json()
         self.assertEqual(data['message'], 'OK')
 
-    # ----------------------------------------------------------
+    ############################################################
     # TEST CREATE
-    # ----------------------------------------------------------
+    ############################################################
+
     def test_create_product(self):
         """It should Create a new Product"""
         test_product = ProductFactory()
@@ -159,10 +162,10 @@ class TestProductRoutes(TestCase):
         """It should not Create a Product with wrong Content-Type"""
         response = self.client.post(BASE_URL, data={}, content_type="plain/text")
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
-    
-    #
+
+    ############################################################
     #   TESTING GET FUNCTIONS
-    #
+    ############################################################
 
     def test_get_a_product(self):
         """ It should read a product from the database """
@@ -180,21 +183,18 @@ class TestProductRoutes(TestCase):
 
     def test_get_product_with_wrong_id(self):
         """ It should return a 404 status code when trying to get a product with invalid id """
-        # Create some products
-        products = self._create_products(1)
-        product = products[0]
 
         # Get a product by product_id
         response = self.client.get(f"{BASE_URL}/0")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    #
+    ############################################################
     #   TESTING LISTING FUNCTIONS
-    #
+    ############################################################
 
     def test_list_products(self):
         """ It should return a list of all products in the database """
-        products = self._create_products(5)
+        self._create_products(5)
         resp = self.client.get(BASE_URL)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         data = resp.get_json()
@@ -207,30 +207,58 @@ class TestProductRoutes(TestCase):
         name_count = len([p for p in products if p.name == product_name])
         response = self.client.get(
             BASE_URL, query_string=f"name={product_name}"
-        )        
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), name_count)
         for i in data:
             self.assertEqual(i["name"], product_name)
-    
+
     def test_list_by_category(self):
-        """ It should return a list of all products with the given name """
+        """ It should return a list of all products with the given category """
         products = self._create_products(10)
         product_category = products[0].category.name
         count = len([p for p in products if p.category.name == product_category])
         response = self.client.get(
-            BASE_URL, query_string=f"category={product_category}"
-        )        
+            BASE_URL, query_string=f"category={quote_plus(product_category)}"
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.get_json()
         self.assertEqual(len(data), count)
         for i in data:
             self.assertEqual(i["category"], product_category)
 
-    #
+    def test_list_by_status(self):
+        """ It should return a list of all available products """
+        products = self._create_products(10)
+        product_status = products[0].available
+        count = len([p for p in products if p.available == product_status])
+        response = self.client.get(
+            BASE_URL, query_string=f"available={product_status}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), count)
+        for i in data:
+            self.assertEqual(i["available"], product_status)
+
+    def test_list_by_price(self):
+        """ It should return a list of all products with the given price """
+        products = self._create_products(10)
+        product_price = products[0].price
+        count = len([p for p in products if p.price == product_price])
+        response = self.client.get(
+            BASE_URL, query_string=f"price={product_price}"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.get_json()
+        self.assertEqual(len(data), count)
+        for i in data:
+            self.assertEqual(Decimal(i["price"]), product_price)
+
+    ############################################################
     # TESTING UPDATE FUNCTIONS
-    #
+    ############################################################
 
     def test_update_a_product(self):
         """ It should update a product in the database """
@@ -258,16 +286,16 @@ class TestProductRoutes(TestCase):
         # Get a product with wrong id
         response = self.client.put(f"{BASE_URL}/'0'")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-    
+
     def test_update_a_product_with_wrong_id(self):
         """ It should return a 415 status code """
         # Get a product with wrong id
         response = self.client.put(f"{BASE_URL}/1")
         self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
-    #
+    ############################################################
     #   TESTING DELETE FUNCTIONS
-    #
+    ############################################################
 
     def test_delete_a_product(self):
         """ It should delete a product with given id from the database """
@@ -279,11 +307,10 @@ class TestProductRoutes(TestCase):
         product = products[0]
         response = self.client.delete(f"{BASE_URL}/{product.id}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         # Check the db is empty
         all_products = self.client.get(f"{BASE_URL}")
         self.assertEqual(len(all_products.get_json()), count - 1)
-
 
     ######################################################################
     # Utility functions

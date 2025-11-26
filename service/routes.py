@@ -18,17 +18,19 @@
 """
 Product Store Service with UI
 """
+from decimal import Decimal
 from flask import jsonify, request, abort
 from flask import url_for  # noqa: F401 pylint: disable=unused-import
 from service.models import Product, Category
 from service.common import status  # HTTP Status Codes
 from . import app
-import logging
 
 
 ######################################################################
 # H E A L T H   C H E C K
 ######################################################################
+
+
 @app.route("/health")
 def healthcheck():
     """Let them know our heart is still beating"""
@@ -38,6 +40,8 @@ def healthcheck():
 ######################################################################
 # H O M E   P A G E
 ######################################################################
+
+
 @app.route("/")
 def index():
     """Base URL for our service"""
@@ -47,6 +51,8 @@ def index():
 ######################################################################
 #  U T I L I T Y   F U N C T I O N S
 ######################################################################
+
+
 def check_content_type(content_type):
     """Checks that the media type is correct"""
     if "Content-Type" not in request.headers:
@@ -69,6 +75,8 @@ def check_content_type(content_type):
 ######################################################################
 # C R E A T E   A   N E W   P R O D U C T
 ######################################################################
+
+
 @app.route("/products", methods=["POST"])
 def create_products():
     """
@@ -87,17 +95,15 @@ def create_products():
 
     message = product.serialize()
 
-    #
-    # Uncomment this line of code once you implement READ A PRODUCT
-    #
     location_url = url_for("get_a_product", product_id=product.id, _external=True)
-    #ocation_url = "/"  # delete once READ is implemented
     return jsonify(message), status.HTTP_201_CREATED, {"Location": location_url}
 
 
 ######################################################################
 # L I S T   A L L   P R O D U C T S
 ######################################################################
+
+
 @app.route("/products", methods=["GET"])
 def list_products():
     """ Returns a list of all products from the db or sorted by given attribute"""
@@ -106,25 +112,26 @@ def list_products():
 
     # Filtering names
     product_name = request.args.get("name")
-    category = request.args.get("category.name")
+    category_name = request.args.get("category")
     product_available = request.args.get("available")
     product_price = request.args.get("price")
 
     if product_name:
         app.logger.info("Filtering items by name:", product_name)
         products = Product.find_by_name(product_name)
-    
-    elif category:
-        app.logger.info("Filtering items by category:", category)
-        products = Product.find_by_category(category=category)
-    
+
+    elif category_name:
+        app.logger.info("Filtering items by category:", category_name)
+        category = getattr(Category, category_name.upper())
+        products = Product.find_by_category(category)
+
     elif product_available:
         app.logger.info("Filtering items by status:", product_available)
         products = Product.find_by_availability(product_available)
 
     elif product_price:
         app.logger.info("Filtering items by price:", product_price)
-        products = Product.find_by_price(product_price)
+        products = Product.find_by_price(Decimal(product_price))
 
     else:
         app.logger.info("Returning a list of all items.")
@@ -139,57 +146,62 @@ def list_products():
 # R E A D   A   P R O D U C T
 ######################################################################
 
+
 @app.route("/products/<int:product_id>", methods=['GET'])
 def get_a_product(product_id):
     """ Retrieve a product from the database by product id. """
-    
+
     product = Product.find(product_id)
 
     if product:
         message = product.serialize()
         return jsonify(message), status.HTTP_200_OK
-    
-    return {"message":"Product with given ID not found."}, status.HTTP_404_NOT_FOUND
+
+    return {"message": "Product with given ID not found."}, status.HTTP_404_NOT_FOUND
+
 
 ######################################################################
 # U P D A T E   A   P R O D U C T
 ######################################################################
 
+
 @app.route("/products/<int:product_id>", methods=['PUT'])
 def update_a_product(product_id):
     """ Update an existing product in the database by product id. """
-    
+
     app.logger.info("Request to Update a product with id [%s]", product_id)
     check_content_type("application/json")
 
-    if type(product_id) != int or product_id == 0:
-        return {"message":"Wrong ID"}, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+    if isinstance(product_id, str) or product_id == 0:
+        return {"message": "Wrong ID"}, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
 
     product = Product.find(product_id)
 
     if product:
-        data = request.get_json() # Json update
-        product.deserialize(data) # Updated dict
+        data = request.get_json()   # Json update
+        product.deserialize(data)   # Updated dict
         product.update()
         return jsonify(product.serialize()), status.HTTP_200_OK
-    
-    return {"message":"Product with given ID not found."}, status.HTTP_404_NOT_FOUND
+
+    return {"message": "Product with given ID not found."}, status.HTTP_404_NOT_FOUND
+
 
 ######################################################################
 # D E L E T E   A   P R O D U C T
 ######################################################################
 
+
 @app.route("/products/<int:product_id>", methods=['DELETE'])
 def delete_a_product(product_id):
     """ Delete an existing product in the database by product id. """
-    
+
     app.logger.info("Request to Delete a product with id [%s]", product_id)
-    
+
     product = Product.find(product_id)
 
     if product:
         product.delete()
         app.logger.info("Deleted ", product.name)
         return {"message": "Product deleted."}, status.HTTP_200_OK
-    
-    #return {"message":"Product with given ID not found."}, status.HTTP_404_NOT_FOUND
+
+    return {"message": "Product with given ID not found."}, status.HTTP_404_NOT_FOUND
