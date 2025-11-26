@@ -110,6 +110,8 @@ def list_products():
 
     app.logger.info("Getting all products...")
 
+    products = []
+
     # Filtering names
     product_name = request.args.get("name")
     category_name = request.args.get("category")
@@ -117,20 +119,21 @@ def list_products():
     product_price = request.args.get("price")
 
     if product_name:
-        app.logger.info("Filtering items by name:", product_name)
+        app.logger.info("Filtering items by name: %s", product_name)
         products = Product.find_by_name(product_name)
 
     elif category_name:
-        app.logger.info("Filtering items by category:", category_name)
+        app.logger.info("Filtering items by category: %s", category_name)
         category = getattr(Category, category_name.upper())
         products = Product.find_by_category(category)
 
     elif product_available:
-        app.logger.info("Filtering items by status:", product_available)
-        products = Product.find_by_availability(product_available)
+        app.logger.info("Filtering items by status: %s", product_available)
+        available_value = product_available.lower() in ["true", "yes", "1"]
+        products = Product.find_by_availability(available_value)
 
     elif product_price:
-        app.logger.info("Filtering items by price:", product_price)
+        app.logger.info("Filtering items by price: %s", product_price)
         products = Product.find_by_price(Decimal(product_price))
 
     else:
@@ -138,7 +141,6 @@ def list_products():
         products = Product.all()
 
     product_list = [p.serialize() for p in products]
-    app.logger.info("There is ", len(product_list))
 
     return product_list, status.HTTP_200_OK
 
@@ -153,11 +155,12 @@ def get_a_product(product_id):
 
     product = Product.find(product_id)
 
-    if product:
-        message = product.serialize()
-        return jsonify(message), status.HTTP_200_OK
+    if not product:
+        abort(status.HTTP_404_NOT_FOUND, f"Product with id '{product_id}' was not found.")
 
-    return {"message": "Product with given ID not found."}, status.HTTP_404_NOT_FOUND
+    
+    message = product.serialize()
+    return jsonify(message), status.HTTP_200_OK
 
 
 ######################################################################
@@ -172,19 +175,16 @@ def update_a_product(product_id):
     app.logger.info("Request to Update a product with id [%s]", product_id)
     check_content_type("application/json")
 
-    if isinstance(product_id, str) or product_id == 0:
-        return {"message": "Wrong ID"}, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
-
     product = Product.find(product_id)
 
-    if product:
-        data = request.get_json()   # Json update
-        product.deserialize(data)   # Updated dict
-        product.update()
-        return jsonify(product.serialize()), status.HTTP_200_OK
+    if not product:
+        abort(status.HTTP_404_NOT_FOUND, f"Product with id '{product_id}' was not found.")
 
-    return {"message": "Product with given ID not found."}, status.HTTP_404_NOT_FOUND
-
+    data = request.get_json()   # Json update
+    product.deserialize(data)   # Updated dict
+    product.id = product_id
+    product.update()
+    return jsonify(product.serialize()), status.HTTP_200_OK
 
 ######################################################################
 # D E L E T E   A   P R O D U C T
