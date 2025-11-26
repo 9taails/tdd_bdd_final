@@ -56,5 +56,5 @@ def step_impl(context):
             "category": row['category']
         }
     
-    context.response = requests.post(f"{rest_endpoint}", json=payload)
+    context.response = requests.post(rest_endpoint, json=payload)
     assert context.response.status_code == 201

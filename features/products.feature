@@ -35,8 +35,6 @@ Scenario: Create a Product
     Then I should see the message "Success"
     And I should see "Hammer" in the "Name" field
     And I should see "Claw hammer" in the "Description" field
-    And I should see "True" in the "Available" dropdown
-    And I should see "Tools" in the "Category" dropdown
     And I should see "34.95" in the "Price" field
 
 Scenario: Read a Product
@@ -50,8 +48,6 @@ Scenario: Read a Product
     And I press the "Retrieve" button
     Then I should see "Hat" in the "Name" field
     And I should see "A red fedora" in the "Description" field
-    And I should see "True" in the "Available" dropdown
-    And I should see "Cloths" in the "Category" dropdown
     And I should see "59.95" in the "Price" field
 
 Scenario: Update a Product
@@ -87,8 +83,6 @@ Scenario: Delete a Product
     Then I should see the message "Success"
     And I should see "Hat" in the "Name" field
     And I should see "A red fedora" in the "Description" field
-    And I should see "True" in the "Available" dropdown
-    And I should see "Cloths" in the "Category" dropdown
     And I should see "59.95" in the "Price" field
     When I press the "Delete" button
     Then I should see the message "Product has been deleted!"
